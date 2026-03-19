@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sovereign Trash</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&family=Bangers&family=Creepster&family=Permanent+Marker&family=VT323&family=Silkscreen&display=swap');
+
+    :root {
+      --bg: #0a0a0a; --king-color: #ff00ff; --accent: #00ff41;
+      --danger: #ff3131; --card-bg: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08); --font-body: 'Space Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body); background: var(--bg); color: #e0e0e0;
+      min-height: 100vh; transition: background-color 1s ease; overflow-x: hidden;
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; position: relative; }
+    header { text-align: center; margin-bottom: 3rem; }
+    h1 {
+      font-family: 'Press Start 2P', cursive; font-size: 2rem; color: var(--king-color);
+      text-shadow: 3px 3px 0 #000, 0 0 20px var(--king-color); margin-bottom: 0.5rem;
+      animation: glitch 3s infinite;
+    }
+    @keyframes glitch {
+      0%,92%,100%{transform:translate(0)} 93%{transform:translate(-2px,1px)}
+      94%{transform:translate(2px,-1px)} 95%{transform:translate(-1px,-1px)}
+    }
+    .subtitle { color: #666; font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-body); font-weight: 700; border: 2px solid;
+      padding: 0.8rem 1.5rem; cursor: pointer; text-transform: uppercase;
+      letter-spacing: 1px; font-size: 0.85rem; transition: all 0.2s; background: transparent;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-connect { color: var(--accent); border-color: var(--accent); margin-top: 1.5rem; }
+    .btn-connect:hover { background: var(--accent); color: #000; }
+    .btn-dethrone { color: var(--danger); border-color: var(--danger); width: 100%; font-size: 1rem; padding: 1rem; }
+    .btn-dethrone:hover:not(:disabled) { background: var(--danger); color: #000; }
+    .btn-withdraw { color: var(--accent); border-color: var(--accent); width: 100%; }
+    .btn-withdraw:hover { background: var(--accent); color: #000; }
+    .btn-theme { color: var(--king-color); border-color: var(--king-color); width: 100%; }
+    .btn-theme:hover:not(:disabled) { background: var(--king-color); color: #000; }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.7rem; border-width: 1px; }
+    .connected-info { margin-top: 1rem; font-size: 0.75rem; color: var(--accent); }
+
+    /* Cards */
+    .card { background: var(--card-bg); border: 1px solid var(--border); padding: 2rem; margin-bottom: 1.5rem; }
+    .card-title {
+      font-family: 'Press Start 2P', cursive; font-size: 0.7rem; color: #666;
+      text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.5rem;
+    }
+
+    /* Throne */
+    .throne-king { font-size: 1.8rem; font-weight: 700; color: var(--king-color); word-break: break-all; margin-bottom: 0.5rem; }
+    .throne-message { font-size: 1.1rem; color: #ccc; font-style: italic; margin: 1rem 0; padding: 1rem; border-left: 3px solid var(--king-color); background: rgba(255,255,255,0.02); }
+    .throne-price { font-size: 0.9rem; color: var(--danger); margin-top: 1rem; }
+    .throne-price .amount { font-size: 1.4rem; font-weight: 700; }
+    .empty-throne { color: #444; font-style: italic; }
+
+    /* Inputs */
+    .message-input, .setting-input {
+      width: 100%; padding: 0.8rem 1rem; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); color: #e0e0e0; font-family: var(--font-body);
+      font-size: 0.9rem; margin-bottom: 1rem; resize: none;
+    }
+    .message-input::placeholder { color: #444; }
+    .message-input:focus { outline: none; border-color: var(--king-color); }
+
+    /* Settings */
+    .setting-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .setting-row label { min-width: 130px; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .setting-row select, .setting-row input[type="text"] {
+      flex: 1; padding: 0.6rem; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); color: #e0e0e0; font-family: var(--font-body); font-size: 0.85rem;
+    }
+    .setting-row select option { background: #1a1a1a; }
+    .setting-row input[type="color"] { width: 50px; height: 36px; border: 1px solid var(--border); background: transparent; cursor: pointer; }
+    .color-group { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
+    .color-hex { font-size: 0.8rem; color: #888; }
+    .king-badge { display: inline-block; background: var(--king-color); color: #000; font-family: 'Press Start 2P', cursive; font-size: 0.5rem; padding: 0.3rem 0.6rem; margin-left: 0.5rem; }
+    .you-badge { font-size: 0.6rem; background: var(--accent); color: #000; padding: 0.15rem 0.4rem; margin-left: 0.4rem; font-weight: 700; }
+
+    /* Tabs */
+    .tab-bar { display: flex; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+    .tab-btn {
+      background: transparent; border: none; color: #666; font-family: 'Press Start 2P', cursive;
+      font-size: 0.55rem; padding: 0.8rem 1.2rem; cursor: pointer; text-transform: uppercase;
+      border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #aaa; }
+    .tab-btn.active { color: var(--king-color); border-bottom-color: var(--king-color); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Block editor */
+    .block-add-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .block-editor { border: 1px solid var(--border); margin-bottom: 1rem; background: rgba(255,255,255,0.02); }
+    .block-editor-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 0.8rem; background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--border); font-size: 0.75rem; color: #888;
+    }
+    .block-editor-actions { display: flex; gap: 0.3rem; }
+    .block-editor-actions button {
+      background: transparent; border: 1px solid var(--border); color: #888;
+      cursor: pointer; padding: 0.2rem 0.5rem; font-size: 0.7rem; font-family: var(--font-body);
+    }
+    .block-editor-actions button:hover { color: #fff; border-color: #fff; }
+    .block-editor-actions button.block-del:hover { color: var(--danger); border-color: var(--danger); }
+    .block-editor-body { padding: 0.8rem; }
+    .block-editor-body textarea, .block-editor-body input[type="text"] {
+      width: 100%; padding: 0.6rem; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); color: #e0e0e0; font-family: var(--font-body);
+      font-size: 0.85rem; resize: vertical;
+    }
+    .block-editor-body textarea:focus, .block-editor-body input[type="text"]:focus { outline: none; border-color: var(--king-color); }
+    .block-editor-body select {
+      padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: #e0e0e0; font-family: var(--font-body); font-size: 0.8rem; margin-bottom: 0.5rem;
+    }
+    .block-editor-body select option { background: #1a1a1a; }
+    .block-editor-body label { font-size: 0.7rem; color: #666; display: block; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 1px; }
+    .block-field { margin-bottom: 0.6rem; }
+    .pos-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .pos-row input[type="number"] {
+      width: 70px; padding: 0.4rem; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); color: #e0e0e0; font-family: var(--font-body); font-size: 0.8rem;
+    }
+    .pos-row span { font-size: 0.75rem; color: #666; }
+
+    /* ---- RENDERED BLOCKS ---- */
+    .kings-page { margin-bottom: 1.5rem; position: relative; }
+    .rendered-block { margin-bottom: 1rem; }
+    .rendered-block.block-heading h2 { font-family: 'Press Start 2P', cursive; font-size: 1rem; color: var(--king-color); text-shadow: 1px 1px 0 #000; }
+    .rendered-block.block-heading h3 { font-size: 1.1rem; font-weight: 700; color: var(--king-color); }
+    .rendered-block.block-text p { font-size: 0.95rem; line-height: 1.7; color: #ccc; }
+    .rendered-block.block-image img { max-width: 100%; border: 1px solid var(--border); display: block; }
+    .rendered-block.block-image .img-caption { font-size: 0.75rem; color: #666; margin-top: 0.3rem; font-style: italic; }
+    .rendered-block.block-divider hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+    .rendered-block.block-quote blockquote { padding: 1rem 1.5rem; border-left: 3px solid var(--king-color); background: rgba(255,255,255,0.02); font-style: italic; color: #ccc; }
+    .rendered-block.block-html { padding: 0.5rem; }
+
+    /* Absolute positioned blocks */
+    .rendered-block.pos-absolute {
+      position: absolute;
+      z-index: 50;
+    }
+
+    /* ---- POST-ITS ---- */
+    .postit {
+      width: 220px;
+      min-height: 80px;
+      padding: 0;
+      box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+      font-family: 'Permanent Marker', cursive;
+      transform: rotate(var(--rot, 0deg));
+      transition: box-shadow 0.2s, transform 0.2s;
+      flex-shrink: 0;
+    }
+    .postit:hover { box-shadow: 5px 5px 15px rgba(0,0,0,0.7); transform: rotate(var(--rot, 0deg)) scale(1.03); }
+    .postit-header {
+      display: flex; justify-content: flex-end; padding: 0.2rem 0.4rem;
+      opacity: 0.6; font-size: 0.7rem;
+    }
+    .postit-close {
+      background: none; border: none; color: inherit; cursor: pointer;
+      font-size: 1rem; font-weight: bold; opacity: 0.5; line-height: 1;
+    }
+    .postit-close:hover { opacity: 1; }
+    .postit-body {
+      padding: 0.5rem 0.8rem 0.8rem;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      color: #333;
+      word-wrap: break-word;
+    }
+
+    /* Hall of Fame */
+    .fame-entry { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.8rem 0; border-bottom: 1px solid var(--border); gap: 1rem; }
+    .fame-entry:last-child { border-bottom: none; }
+    .fame-rank { font-family: 'Press Start 2P', cursive; font-size: 0.6rem; color: #444; min-width: 2rem; }
+    .fame-details { flex: 1; }
+    .fame-addr { font-size: 0.8rem; color: var(--king-color); }
+    .fame-msg { font-size: 0.75rem; color: #888; font-style: italic; margin-top: 0.2rem; }
+    .fame-price { font-size: 0.8rem; color: var(--accent); white-space: nowrap; }
+    .fame-empty { color: #444; font-style: italic; font-size: 0.85rem; }
+    .withdraw-balance { font-size: 1.2rem; margin-bottom: 1rem; color: var(--accent); }
+
+    /* Status */
+    .status { margin-top: 1rem; padding: 0.8rem; font-size: 0.8rem; display: none; }
+    .status.show { display: block; }
+    .status.error { background: rgba(255,49,49,0.1); border: 1px solid rgba(255,49,49,0.3); color: var(--danger); }
+    .status.success { background: rgba(0,255,65,0.1); border: 1px solid rgba(0,255,65,0.3); color: var(--accent); }
+
+    .crown { display: inline-block; animation: float 2s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    .hidden { display: none; }
+    .contract-info { text-align: center; font-size: 0.65rem; color: #333; margin-top: 2rem; word-break: break-all; }
+
+    /* Post-it overlay container — covers full page for absolute positioning */
+    #postitLayer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    #postitLayer .postit {
+      pointer-events: auto;
+    }
+    .postit.placed {
+      position: absolute;
+    }
+    .postit.draggable { cursor: grab; }
+    .postit.dragging { cursor: grabbing; opacity: 0.85; z-index: 200; }
+  </style>
+</head>
+<body>
+
+  <div id="postitLayer"></div>
+  <div class="container">
+    <header>
+      <h1 id="siteTitle"><span class="crown">👑</span> Sovereign Trash <span class="crown">🗑️</span></h1>
+      <p class="subtitle">King of the Hill — Pay to Rule</p>
+      <button class="btn btn-connect" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+      <div class="connected-info hidden" id="connectedInfo"></div>
+    </header>
+
+    <!-- Throne -->
+    <div class="card">
+      <div class="card-title">👑 The Throne</div>
+      <div id="throneContent"><div class="empty-throne">The throne is empty... Be the first king!</div></div>
+      <div class="throne-price">Price to dethrone: <span class="amount" id="currentPrice">0.01 ETH</span></div>
+    </div>
+
+    <!-- King's Page -->
+    <div class="kings-page hidden" id="kingsPage"></div>
+
+    <!-- Dethrone -->
+    <div class="card hidden" id="actionCard">
+      <div class="card-title">⚔️ Seize the Throne</div>
+      <textarea class="message-input" id="messageInput" rows="2" placeholder="Your royal decree..."></textarea>
+      <button class="btn btn-dethrone" id="dethroneBtn" onclick="dethrone()">⚔️ Dethrone the King</button>
+      <div class="status" id="dethroneStatus"></div>
+    </div>
+
+    <!-- King Dashboard -->
+    <div class="card hidden" id="settingsCard">
+      <div class="card-title">⚙️ King's Dashboard <span class="king-badge">KING ONLY</span></div>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('theme')">Theme</button>
+        <button class="tab-btn" onclick="switchTab('blocks')">Page Builder</button>
+        <button class="tab-btn" onclick="switchTab('postits')">Post-its</button>
+      </div>
+
+      <!-- TAB: Theme -->
+      <div class="tab-panel active" id="tab-theme">
+        <div class="setting-row"><label>Title</label><input type="text" id="setTitle" value="Sovereign Trash" maxlength="50"></div>
+        <div class="setting-row"><label>Font</label>
+          <select id="setFont">
+            <option value="Space Mono">Space Mono</option><option value="Press Start 2P">Press Start 2P</option>
+            <option value="Bangers">Bangers</option><option value="Creepster">Creepster</option>
+            <option value="Permanent Marker">Permanent Marker</option><option value="VT323">VT323</option>
+            <option value="Silkscreen">Silkscreen</option>
+          </select>
+        </div>
+        <div class="setting-row"><label>Accent Color</label><div class="color-group"><input type="color" id="setAccent" value="#ff00ff"><span class="color-hex" id="setAccentHex">#ff00ff</span></div></div>
+        <div class="setting-row"><label>Background</label><div class="color-group"><input type="color" id="setBg" value="#0a0a0a"><span class="color-hex" id="setBgHex">#0a0a0a</span></div></div>
+        <div class="setting-row"><label>Danger Color</label><div class="color-group"><input type="color" id="setDanger" value="#ff3131"><span class="color-hex" id="setDangerHex">#ff3131</span></div></div>
+        <div class="setting-row"><label>Button Color</label><div class="color-group"><input type="color" id="setButtonColor" value="#00ff41"><span class="color-hex" id="setButtonColorHex">#00ff41</span></div></div>
+        <button class="btn btn-theme" onclick="saveSettings()">⚙️ Save Theme</button>
+        <div class="status" id="themeStatus"></div>
+      </div>
+
+      <!-- TAB: Page Builder -->
+      <div class="tab-panel" id="tab-blocks">
+        <p style="font-size:0.8rem;color:#888;margin-bottom:1rem">Add blocks to your page. Set position to "absolute" to place them freely.</p>
+        <div class="block-add-bar">
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('heading')">+ Heading</button>
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('text')">+ Text</button>
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('image')">+ Image</button>
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('quote')">+ Quote</button>
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('divider')">+ Divider</button>
+          <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent)" onclick="addBlock('html')">+ HTML</button>
+        </div>
+        <div id="blockList"></div>
+        <button class="btn btn-theme" onclick="saveBlocks()" style="margin-top:1rem">⚙️ Save Page</button>
+        <div class="status" id="blocksStatus"></div>
+      </div>
+
+      <!-- TAB: Post-its -->
+      <div class="tab-panel" id="tab-postits">
+        <p style="font-size:0.8rem;color:#888;margin-bottom:1rem">
+          Sticky notes anyone can close. Drag them around on the page!
+        </p>
+        <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent);margin-bottom:1rem" onclick="addPostit()">+ New Post-it</button>
+        <div id="postitList"></div>
+        <button class="btn btn-theme" onclick="savePostits()" style="margin-top:1rem">⚙️ Save Post-its</button>
+        <div class="status" id="postitsStatus"></div>
+      </div>
+    </div>
+
+    <!-- Withdraw -->
+    <div class="card hidden" id="withdrawCard">
+      <div class="card-title">💰 Your Earnings</div>
+      <div class="withdraw-balance">Pending: <strong id="pendingBalance">0</strong> ETH</div>
+      <button class="btn btn-withdraw" onclick="doWithdraw()">💰 Withdraw</button>
+      <div class="status" id="withdrawStatus"></div>
+    </div>
+
+    <!-- Hall of Fame -->
+    <div class="card">
+      <div class="card-title">🏆 Hall of Fame</div>
+      <div id="hallOfFame"><div class="fame-empty">No kings yet. The throne awaits...</div></div>
+    </div>
+    <div class="contract-info" id="contractInfo"></div>
+  </div>
+
+  <script>
+    const CONTRACT_ADDRESS = '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab';
+    const CONTRACT_ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"king","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"string","name":"message","type":"string"}],"name":"NewKing","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"king","type":"address"},{"indexed":false,"internalType":"string","name":"key","type":"string"},{"indexed":false,"internalType":"string","name":"value","type":"string"}],"name":"SettingsChanged","type":"event"},
+      {"inputs":[],"name":"currentKing","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"currentPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"kingMessage","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"pendingWithdrawals","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"settings","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"_message","type":"string"}],"name":"dethrone","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[{"internalType":"string","name":"_key","type":"string"},{"internalType":"string","name":"_value","type":"string"}],"name":"setSetting","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"string[]","name":"_keys","type":"string[]"},{"internalType":"string[]","name":"_values","type":"string[]"}],"name":"setSettings","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"getSettingKeys","outputs":[{"internalType":"string[]","name":"","type":"string[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"getHallOfFame","outputs":[{"components":[{"internalType":"address","name":"addr","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"string","name":"message","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"internalType":"struct SovereignTrash.King[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getHallOfFameLength","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+
+    const SETTING_KEYS = ['title','font','accentColor','bgColor','dangerColor','buttonColor'];
+    const SETTING_DEFAULTS = { title:'Sovereign Trash', font:'Space Mono', accentColor:'#ff00ff', bgColor:'#0a0a0a', dangerColor:'#ff3131', buttonColor:'#00ff41' };
+    const POSTIT_COLORS = ['#ffeb3b','#ff9800','#e91e63','#00bcd4','#8bc34a','#9c27b0','#03a9f4','#ff5722'];
+
+    let web3, contract, account;
+    let readonlyWeb3, readonlyContract;
+    let editorBlocks = [];
+    let editorPostits = [];
+    let closedPostits = JSON.parse(localStorage.getItem('closedPostits') || '[]');
+    let isKingGlobal = false;
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+      try {
+        readonlyWeb3 = new Web3('http://127.0.0.1:8545');
+        readonlyContract = new readonlyWeb3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+        document.getElementById('contractInfo').textContent = 'Contract: ' + CONTRACT_ADDRESS;
+        await loadPublicState();
+      } catch (err) { console.error('Init failed:', err); }
+    }
+
+    async function loadPublicState() {
+      const c = readonlyContract, w = readonlyWeb3;
+      try {
+        const [king, price, message, hallOfFame] = await Promise.all([
+          c.methods.currentKing().call(), c.methods.currentPrice().call(),
+          c.methods.kingMessage().call(), c.methods.getHallOfFame().call()
+        ]);
+
+        const cs = {};
+        for (const key of SETTING_KEYS) {
+          try { const v = await c.methods.settings(key).call(); cs[key] = v || SETTING_DEFAULTS[key]; }
+          catch { cs[key] = SETTING_DEFAULTS[key]; }
+        }
+        applyTheme(cs);
+
+        let blocks = [];
+        try { const j = await c.methods.settings('blocks').call(); if (j) blocks = JSON.parse(j); } catch {}
+        renderPage(blocks);
+
+        let postits = [];
+        try { const j = await c.methods.settings('postits').call(); if (j) postits = JSON.parse(j); } catch {}
+        isKingGlobal = account ? king.toLowerCase() === account.toLowerCase() : false;
+        renderPostits(postits);
+
+        const throneEl = document.getElementById('throneContent');
+        const isEmpty = king === '0x0000000000000000000000000000000000000000';
+        if (isEmpty) {
+          throneEl.innerHTML = '<div class="empty-throne">The throne is empty... Be the first king!</div>';
+        } else {
+          const ik = account && king.toLowerCase() === account.toLowerCase();
+          throneEl.innerHTML = `<div class="throne-king">${truncAddr(king)}${ik?'<span class="you-badge">YOU</span>':''}</div>
+            <div class="throne-message">"${escapeHtml(message)}"</div>`;
+        }
+        document.getElementById('currentPrice').textContent = w.utils.fromWei(price, 'ether') + ' ETH';
+
+        const fameEl = document.getElementById('hallOfFame');
+        if (hallOfFame.length === 0) {
+          fameEl.innerHTML = '<div class="fame-empty">No kings yet. The throne awaits...</div>';
+        } else {
+          const last5 = hallOfFame.slice(-5).reverse();
+          fameEl.innerHTML = last5.map((e, i) => {
+            const u = account && e.addr.toLowerCase() === account.toLowerCase();
+            return `<div class="fame-entry"><div class="fame-rank">#${hallOfFame.length-i}</div>
+              <div class="fame-details"><div class="fame-addr">${truncAddr(e.addr)}${u?'<span class="you-badge">YOU</span>':''}</div>
+              <div class="fame-msg">"${escapeHtml(e.message)}"</div></div>
+              <div class="fame-price">${w.utils.fromWei(e.price,'ether')} ETH</div></div>`;
+          }).join('');
+        }
+        return { king, cs, blocks, postits };
+      } catch (err) { console.error('Load failed:', err); }
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+
+    // ============================================================
+    // TABS
+    // ============================================================
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      const labels = { theme: 'theme', blocks: 'page', postits: 'post' };
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        if (b.textContent.trim().toLowerCase().includes(labels[name])) b.classList.add('active');
+      });
+    }
+
+    // ============================================================
+    // CONNECT
+    // ============================================================
+    async function connectWallet() {
+      if (!window.ethereum) { alert('MetaMask not detected!'); return; }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        account = accounts[0];
+        web3 = new Web3(window.ethereum);
+        contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+        document.getElementById('connectBtn').classList.add('hidden');
+        const info = document.getElementById('connectedInfo');
+        info.classList.remove('hidden');
+        info.textContent = '✓ ' + truncAddr(account);
+        document.getElementById('actionCard').classList.remove('hidden');
+        document.getElementById('withdrawCard').classList.remove('hidden');
+
+        window.ethereum.on('accountsChanged', a => { account = a[0]; info.textContent = '✓ ' + truncAddr(account); refreshState(); });
+        contract.events.NewKing({}).on('data', () => refreshState());
+        contract.events.SettingsChanged({}).on('data', () => refreshState());
+
+        for (const id of ['setAccent','setBg','setDanger','setButtonColor']) {
+          document.getElementById(id).addEventListener('input', e => { document.getElementById(id+'Hex').textContent = e.target.value; previewTheme(); });
+        }
+        document.getElementById('setFont').addEventListener('change', previewTheme);
+        document.getElementById('setTitle').addEventListener('input', previewTheme);
+        refreshState();
+      } catch (err) { console.error('Connection failed:', err); }
+    }
+
+    async function refreshState() {
+      const r = await loadPublicState();
+      if (!r || !account) return;
+      try {
+        const pending = await contract.methods.pendingWithdrawals(account).call();
+        document.getElementById('pendingBalance').textContent = web3.utils.fromWei(pending, 'ether');
+        const isEmpty = r.king === '0x0000000000000000000000000000000000000000';
+        const isKing = !isEmpty && r.king.toLowerCase() === account.toLowerCase();
+        isKingGlobal = isKing;
+        document.getElementById('settingsCard').classList.toggle('hidden', !isKing);
+        if (isKing) {
+          document.getElementById('setTitle').value = r.cs.title;
+          document.getElementById('setFont').value = r.cs.font;
+          document.getElementById('setAccent').value = r.cs.accentColor;
+          document.getElementById('setAccentHex').textContent = r.cs.accentColor;
+          document.getElementById('setBg').value = r.cs.bgColor;
+          document.getElementById('setBgHex').textContent = r.cs.bgColor;
+          document.getElementById('setDanger').value = r.cs.dangerColor;
+          document.getElementById('setDangerHex').textContent = r.cs.dangerColor;
+          document.getElementById('setButtonColor').value = r.cs.buttonColor;
+          document.getElementById('setButtonColorHex').textContent = r.cs.buttonColor;
+          editorBlocks = r.blocks ? JSON.parse(JSON.stringify(r.blocks)) : [];
+          editorPostits = r.postits ? JSON.parse(JSON.stringify(r.postits)) : [];
+          renderBlockEditor();
+          renderPostitEditor();
+        }
+      } catch (err) { console.error('Refresh failed:', err); }
+    }
+
+    // ============================================================
+    // THEME
+    // ============================================================
+    function applyTheme(s) {
+      document.documentElement.style.setProperty('--font-body', `'${s.font}',monospace`);
+      document.body.style.fontFamily = `'${s.font}',monospace`;
+      document.documentElement.style.setProperty('--king-color', s.accentColor);
+      document.documentElement.style.setProperty('--bg', s.bgColor);
+      document.body.style.backgroundColor = s.bgColor;
+      document.documentElement.style.setProperty('--danger', s.dangerColor);
+      document.documentElement.style.setProperty('--accent', s.buttonColor);
+      document.getElementById('siteTitle').innerHTML = `<span class="crown">👑</span> ${escapeHtml(s.title)} <span class="crown">🗑️</span>`;
+      document.title = s.title;
+    }
+    function previewTheme() {
+      applyTheme({ title: document.getElementById('setTitle').value||SETTING_DEFAULTS.title, font: document.getElementById('setFont').value,
+        accentColor: document.getElementById('setAccent').value, bgColor: document.getElementById('setBg').value,
+        dangerColor: document.getElementById('setDanger').value, buttonColor: document.getElementById('setButtonColor').value });
+    }
+    async function saveSettings() {
+      try {
+        showStatus('themeStatus','Waiting for MetaMask...','success');
+        await contract.methods.setSettings(SETTING_KEYS, [
+          document.getElementById('setTitle').value||SETTING_DEFAULTS.title, document.getElementById('setFont').value,
+          document.getElementById('setAccent').value, document.getElementById('setBg').value,
+          document.getElementById('setDanger').value, document.getElementById('setButtonColor').value
+        ]).send({from:account});
+        showStatus('themeStatus','Theme saved! 👑','success'); refreshState();
+      } catch(e) { showStatus('themeStatus',e.message||'Failed','error'); }
+    }
+
+    // ============================================================
+    // BLOCK BUILDER
+    // ============================================================
+    function addBlock(type) {
+      const d = {
+        heading: {type:'heading',level:'h2',text:'New Heading',pos:'static',x:10,y:10},
+        text: {type:'text',text:'Your text here...',pos:'static',x:10,y:10},
+        image: {type:'image',url:'',caption:'',pos:'static',x:10,y:10},
+        quote: {type:'quote',text:'A royal quote...',pos:'static',x:10,y:10},
+        divider: {type:'divider',pos:'static',x:10,y:10},
+        html: {type:'html',code:'<p style="color:gold;">Custom HTML</p>',pos:'static',x:10,y:10}
+      };
+      editorBlocks.push(d[type]);
+      renderBlockEditor(); previewBlocks();
+    }
+    function moveBlock(i,d) { const t=i+d; if(t<0||t>=editorBlocks.length)return; [editorBlocks[i],editorBlocks[t]]=[editorBlocks[t],editorBlocks[i]]; renderBlockEditor(); previewBlocks(); }
+    function removeBlock(i) { editorBlocks.splice(i,1); renderBlockEditor(); previewBlocks(); }
+    function updateBlockField(i,f,v) { editorBlocks[i][f]=v; if(f==='pos') renderBlockEditor(); previewBlocks(); }
+    function previewBlocks() { renderPage(editorBlocks); }
+
+    function renderBlockEditor() {
+      const el = document.getElementById('blockList');
+      if (!editorBlocks.length) { el.innerHTML = '<p style="color:#444;font-style:italic;font-size:0.85rem">No blocks yet.</p>'; return; }
+      el.innerHTML = editorBlocks.map((b,i) => {
+        const icons = {heading:'🔤',text:'📝',image:'🖼️',quote:'💬',divider:'➖',html:'🧩'};
+        let fields = '';
+        const posField = `<div class="block-field"><label>Position</label>
+          <div class="pos-row">
+            <select onchange="updateBlockField(${i},'pos',this.value)">
+              <option value="static" ${b.pos==='static'?'selected':''}>Static (flow)</option>
+              <option value="absolute" ${b.pos==='absolute'?'selected':''}>Absolute (free)</option>
+            </select>
+            ${b.pos==='absolute'?`<span>X%</span><input type="number" min="0" max="100" value="${b.x||0}" onchange="updateBlockField(${i},'x',+this.value)">
+              <span>Y px</span><input type="number" min="0" max="5000" value="${b.y||0}" onchange="updateBlockField(${i},'y',+this.value)">`:''}
+          </div></div>`;
+
+        if (b.type==='heading') fields = `<div class="block-field"><label>Level</label><select onchange="updateBlockField(${i},'level',this.value)"><option value="h2" ${b.level==='h2'?'selected':''}>H2</option><option value="h3" ${b.level==='h3'?'selected':''}>H3</option></select></div><div class="block-field"><label>Text</label><input type="text" value="${escapeAttr(b.text)}" oninput="updateBlockField(${i},'text',this.value)"></div>`;
+        else if (b.type==='text') fields = `<div class="block-field"><label>Content</label><textarea rows="3" oninput="updateBlockField(${i},'text',this.value)">${escapeHtml(b.text)}</textarea></div>`;
+        else if (b.type==='image') fields = `<div class="block-field"><label>URL</label><input type="text" value="${escapeAttr(b.url)}" placeholder="https://..." oninput="updateBlockField(${i},'url',this.value)"></div><div class="block-field"><label>Caption</label><input type="text" value="${escapeAttr(b.caption)}" oninput="updateBlockField(${i},'caption',this.value)"></div>`;
+        else if (b.type==='quote') fields = `<div class="block-field"><label>Quote</label><textarea rows="2" oninput="updateBlockField(${i},'text',this.value)">${escapeHtml(b.text)}</textarea></div>`;
+        else if (b.type==='divider') fields = '<p style="color:#666;font-size:0.8rem">Horizontal line</p>';
+        else if (b.type==='html') fields = `<div class="block-field"><label>HTML</label><textarea rows="4" oninput="updateBlockField(${i},'code',this.value)">${escapeHtml(b.code)}</textarea></div>`;
+
+        return `<div class="block-editor"><div class="block-editor-header"><span>${icons[b.type]||'?'} ${b.type} ${b.pos==='absolute'?'(abs)':''}</span><div class="block-editor-actions"><button onclick="moveBlock(${i},-1)">↑</button><button onclick="moveBlock(${i},1)">↓</button><button class="block-del" onclick="removeBlock(${i})">✕</button></div></div><div class="block-editor-body">${posField}${fields}</div></div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // RENDER PAGE
+    // ============================================================
+    function renderPage(blocks) {
+      const el = document.getElementById('kingsPage');
+      if (!blocks||!blocks.length) { el.classList.add('hidden'); el.innerHTML=''; return; }
+      el.classList.remove('hidden');
+      el.innerHTML = blocks.map(b => {
+        const abs = b.pos==='absolute';
+        const style = abs ? `position:absolute;left:${b.x||0}%;top:${b.y||0}px;max-width:60%;` : '';
+        const cls = `rendered-block block-${b.type} ${abs?'pos-absolute':''}`;
+        let inner = '';
+        if (b.type==='heading') { const t=b.level==='h3'?'h3':'h2'; inner=`<${t}>${escapeHtml(b.text)}</${t}>`; }
+        else if (b.type==='text') inner = b.text.split('\n').filter(l=>l.trim()).map(l=>`<p>${escapeHtml(l)}</p>`).join('');
+        else if (b.type==='image'&&b.url) { const c=b.caption?`<div class="img-caption">${escapeHtml(b.caption)}</div>`:''; inner=`<img src="${escapeAttr(b.url)}" alt="${escapeAttr(b.caption)}">${c}`; }
+        else if (b.type==='quote') inner=`<blockquote>${escapeHtml(b.text)}</blockquote>`;
+        else if (b.type==='divider') inner='<hr>';
+        else if (b.type==='html') inner=b.code;
+        else return '';
+        return `<div class="${cls}" style="${style}">${inner}</div>`;
+      }).join('');
+    }
+
+    async function saveBlocks() {
+      try { showStatus('blocksStatus','Waiting for MetaMask...','success');
+        await contract.methods.setSetting('blocks',JSON.stringify(editorBlocks)).send({from:account});
+        showStatus('blocksStatus','Page saved! 👑','success'); refreshState();
+      } catch(e) { showStatus('blocksStatus',e.message||'Failed','error'); }
+    }
+
+    // ============================================================
+    // POST-ITS
+    // ============================================================
+    function addPostit() {
+      editorPostits.push({
+        id: Date.now().toString(36),
+        text: 'New note!',
+        color: POSTIT_COLORS[editorPostits.length % POSTIT_COLORS.length],
+        x: 10 + Math.random()*60,
+        y: 100 + Math.random()*300,
+        rot: (Math.random()*6 - 3).toFixed(1)
+      });
+      renderPostitEditor();
+      renderPostits(editorPostits);
+    }
+
+    function removePostit(i) { editorPostits.splice(i,1); renderPostitEditor(); renderPostits(editorPostits); }
+    function updatePostitField(i,f,v) { editorPostits[i][f]=v; renderPostits(editorPostits); }
+
+    function renderPostitEditor() {
+      const el = document.getElementById('postitList');
+      if (!editorPostits.length) { el.innerHTML='<p style="color:#444;font-style:italic;font-size:0.85rem">No post-its yet.</p>'; return; }
+      el.innerHTML = editorPostits.map((p,i) => `
+        <div class="block-editor">
+          <div class="block-editor-header">
+            <span>📌 Post-it #${i+1}</span>
+            <div class="block-editor-actions"><button class="block-del" onclick="removePostit(${i})">✕</button></div>
+          </div>
+          <div class="block-editor-body">
+            <div class="block-field"><label>Text</label><textarea rows="2" oninput="updatePostitField(${i},'text',this.value)">${escapeHtml(p.text)}</textarea></div>
+            <div class="block-field"><label>Color</label>
+              <div class="pos-row">${POSTIT_COLORS.map(c=>`<span onclick="updatePostitField(${i},'color','${c}')" style="display:inline-block;width:24px;height:24px;background:${c};cursor:pointer;border:${p.color===c?'2px solid #fff':'2px solid transparent'};margin-right:2px"></span>`).join('')}</div>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderPostits(postits) {
+      const layer = document.getElementById('postitLayer');
+      if (!postits||!postits.length) { layer.innerHTML=''; return; }
+      layer.innerHTML = postits.filter(p => !closedPostits.includes(p.id)).map(p => {
+        const hasPos = p.fx != null && p.fy != null;
+        const cls = `postit ${hasPos?'placed':''} ${isKingGlobal?'draggable':''}`;
+        const style = hasPos
+          ? `background:${p.color};--rot:${p.rot||0}deg;left:${p.fx}px;top:${p.fy}px`
+          : `background:${p.color};--rot:${p.rot||0}deg`;
+        return `<div class="${cls}" data-id="${p.id}" style="${style}">
+          <div class="postit-header">
+            <button class="postit-close" onclick="closePostit('${p.id}')" title="Close">✕</button>
+          </div>
+          <div class="postit-body">${escapeHtml(p.text)}</div>
+        </div>`;
+      }).join('');
+
+      if (isKingGlobal) {
+        layer.querySelectorAll('.postit.draggable').forEach(el => {
+          el.addEventListener('mousedown', startDragPostit);
+        });
+      }
+    }
+
+    function closePostit(id) {
+      closedPostits.push(id);
+      localStorage.setItem('closedPostits', JSON.stringify(closedPostits));
+      const el = document.querySelector(`.postit[data-id="${id}"]`);
+      if (el) el.style.display = 'none';
+    }
+
+
+    // Drag post-its (king only)
+    let dragTarget = null, dragOffX = 0, dragOffY = 0;
+    function startDragPostit(e) {
+      if (!isKingGlobal || e.target.classList.contains('postit-close')) return;
+      dragTarget = e.currentTarget;
+      dragTarget.classList.add('dragging', 'placed');
+      // Snap to current visual position before switching to absolute
+      const rect = dragTarget.getBoundingClientRect();
+      dragTarget.style.left = rect.left + 'px';
+      dragTarget.style.top = rect.top + 'px';
+      dragOffX = e.clientX - rect.left;
+      dragOffY = e.clientY - rect.top;
+      document.addEventListener('mousemove', doDragPostit);
+      document.addEventListener('mouseup', endDragPostit);
+      e.preventDefault();
+    }
+    function doDragPostit(e) {
+      if (!dragTarget) return;
+      dragTarget.style.left = (e.clientX - dragOffX) + 'px';
+      dragTarget.style.top = (e.clientY - dragOffY) + 'px';
+    }
+    function endDragPostit() {
+      if (!dragTarget) return;
+      dragTarget.classList.remove('dragging');
+      const id = dragTarget.dataset.id;
+      const idx = editorPostits.findIndex(p => p.id === id);
+      if (idx >= 0) {
+        editorPostits[idx].fx = parseFloat(dragTarget.style.left);
+        editorPostits[idx].fy = parseFloat(dragTarget.style.top);
+        renderPostitEditor();
+      }
+      dragTarget = null;
+      document.removeEventListener('mousemove', doDragPostit);
+      document.removeEventListener('mouseup', endDragPostit);
+    }
+
+    async function savePostits() {
+      try { showStatus('postitsStatus','Waiting for MetaMask...','success');
+        await contract.methods.setSetting('postits',JSON.stringify(editorPostits)).send({from:account});
+        showStatus('postitsStatus','Post-its saved! 📌','success'); refreshState();
+      } catch(e) { showStatus('postitsStatus',e.message||'Failed','error'); }
+    }
+
+    // ============================================================
+    // DETHRONE / WITHDRAW
+    // ============================================================
+    async function dethrone() {
+      const msg = document.getElementById('messageInput').value.trim();
+      if (!msg) { showStatus('dethroneStatus','Write a message!','error'); return; }
+      try {
+        const price = await contract.methods.currentPrice().call();
+        showStatus('dethroneStatus','Waiting for MetaMask...','success');
+        document.getElementById('dethroneBtn').disabled = true;
+        await contract.methods.dethrone(msg).send({from:account,value:price});
+        showStatus('dethroneStatus','You are the new king! 👑','success');
+        document.getElementById('messageInput').value = '';
+        refreshState();
+      } catch(e) { showStatus('dethroneStatus',e.message||'Failed','error'); }
+      finally { document.getElementById('dethroneBtn').disabled = false; }
+    }
+    async function doWithdraw() {
+      try {
+        const p = await contract.methods.pendingWithdrawals(account).call();
+        if (p==='0') { showStatus('withdrawStatus','Nothing to withdraw','error'); return; }
+        showStatus('withdrawStatus','Waiting for MetaMask...','success');
+        await contract.methods.withdraw().send({from:account});
+        showStatus('withdrawStatus','Withdrawal successful! 💰','success'); refreshState();
+      } catch(e) { showStatus('withdrawStatus',e.message||'Failed','error'); }
+    }
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function truncAddr(a) { return a.slice(0,6)+'...'+a.slice(-4); }
+    function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function escapeAttr(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function showStatus(id,msg,type) { const e=document.getElementById(id); e.textContent=msg; e.className='status show '+type; }
+  </script>
+</body>
+</html>

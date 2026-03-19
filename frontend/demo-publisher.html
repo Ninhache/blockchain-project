@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoDaily — Demo Publisher Site</title>
+  <style>
+    :root {
+      --bg: #f8f9fa; --text: #1a1a2e; --muted: #6b7280;
+      --border: #e5e7eb; --accent: #1d4ed8;
+      --font: system-ui, -apple-system, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid var(--text); padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between; background: #fff;
+    }
+    .site-name { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; }
+    .site-name span { color: var(--accent); }
+    .site-tagline { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+    nav { display: flex; gap: 1.5rem; }
+    nav a { text-decoration: none; color: var(--text); font-size: 0.9rem; font-weight: 500; }
+    nav a:hover { color: var(--accent); }
+
+    /* Layout */
+    .layout { max-width: 1100px; margin: 0 auto; padding: 2rem; display: grid; grid-template-columns: 1fr 300px; gap: 2rem; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+
+    /* Article */
+    .article-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin-bottom: 0.8rem; }
+    .article h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.5px; }
+    .article-meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .article p { font-size: 1rem; line-height: 1.8; color: #374151; margin-bottom: 1.2rem; }
+    .article h2 { font-size: 1.2rem; font-weight: 700; margin: 2rem 0 0.8rem; }
+    blockquote { border-left: 3px solid var(--accent); padding: 0.8rem 1.2rem; background: #eff6ff; margin: 1.5rem 0; font-style: italic; color: #374151; }
+
+    /* Sidebar */
+    .sidebar { }
+    .sidebar-section { margin-bottom: 2rem; }
+    .sidebar-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.8rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+    /* Inline ad slot (in article) */
+    .inline-ad { margin: 2rem 0; }
+    .inline-ad-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+
+    /* Related articles */
+    .related-item { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+    .related-img { width: 70px; height: 50px; background: #ddd; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
+    .related-title { font-size: 0.82rem; font-weight: 600; line-height: 1.3; }
+    .related-date { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+    /* Footer */
+    footer { background: #1a1a2e; color: #94a3b8; text-align: center; padding: 1.5rem; font-size: 0.8rem; margin-top: 3rem; }
+    footer a { color: #4f8ef7; text-decoration: none; }
+
+    /* Demo banner */
+    .demo-banner {
+      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+      color: #fff; text-align: center; padding: 0.6rem 1rem;
+      font-size: 0.8rem; font-weight: 500;
+    }
+    .demo-banner a { color: #bfdbfe; font-weight: 700; text-decoration: none; }
+    .demo-banner a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="demo-banner">
+    🎯 This is a demo publisher site. The ad slots below are powered by
+    <a href="dashboard.html" target="_blank">0xAds</a> — click "Buy" to place your own ad live on this page!
+  </div>
+
+  <header>
+    <div>
+      <div class="site-name">Crypto<span>Daily</span></div>
+      <div class="site-tagline">Your blockchain news source</div>
+    </div>
+    <nav>
+      <a href="#">Bitcoin</a>
+      <a href="#">Ethereum</a>
+      <a href="#">DeFi</a>
+      <a href="#">NFTs</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <!-- Main article -->
+    <main class="article">
+      <div class="article-tag">Ethereum · Smart Contracts</div>
+      <h1>Decentralized Advertising Is Here — And It Changes Everything</h1>
+      <div class="article-meta">
+        By <strong>Satoshi Reporter</strong> · March 17, 2026 · 5 min read
+      </div>
+
+      <p>
+        For the past decade, digital advertising has been dominated by a handful of centralized
+        platforms. Google and Meta capture over 60% of all digital ad spend globally — acting as
+        gatekeepers between advertisers and publishers, taking their cut and leaving little room for
+        alternatives.
+      </p>
+
+      <p>
+        But a new wave of on-chain advertising protocols is challenging this model head-on. Using
+        smart contracts, advertisers can now bid directly for ad placements on publishers' websites —
+        no intermediary, no account required, no censorship.
+      </p>
+
+      <!-- Inline ad slot #1 -->
+      <div class="inline-ad">
+        <div class="inline-ad-label">Advertisement</div>
+        <div class="ox-ad-slot" data-slot-id="1"></div>
+      </div>
+
+      <h2>The King-of-the-Hill Model</h2>
+      <p>
+        The most elegant mechanism emerging in decentralized ads is the "king of the hill" auction.
+        Rather than a traditional bidding system, anyone can displace the current advertiser by
+        paying 10% more. The displaced advertiser gets refunded automatically through the smart contract.
+      </p>
+
+      <blockquote>
+        "We don't need Google's permission to run an ad. We just need ETH and a wallet."
+        — Anonymous DeFi developer
+      </blockquote>
+
+      <p>
+        This creates a self-regulating marketplace. High-value ad slots attract more competition,
+        driving prices up naturally. Publishers earn 80% of every bid in real time — no monthly
+        invoices, no payment delays, no chargebacks. Just ETH arriving in their wallet.
+      </p>
+
+      <h2>What Publishers Earn</h2>
+      <p>
+        Under the 0xAds model, each time an advertiser places a bid on a publisher's slot, 80% of
+        the value flows directly to the publisher's address as pending withdrawals. The publisher
+        can claim it at any time with a single on-chain transaction.
+      </p>
+
+      <p>
+        The remaining 20% goes to the protocol — covering infrastructure costs and incentivizing
+        further development of the open-source codebase.
+      </p>
+
+      <!-- Inline ad slot #2 -->
+      <div class="inline-ad">
+        <div class="inline-ad-label">Advertisement</div>
+        <div class="ox-ad-slot" data-slot-id="2"></div>
+      </div>
+
+      <h2>No Sign-Up Required</h2>
+      <p>
+        Perhaps the most revolutionary aspect is the permissionless nature of the system. Publishers
+        don't fill out a form, wait for approval, or pass KYC. They simply register their slot on
+        the contract — and immediately start earning.
+      </p>
+
+      <p>
+        Advertisers are equally liberated. There's no ad account to create, no campaign manager to
+        configure, no creative review process. An image URL and a destination link is all it takes.
+        MetaMask handles the rest.
+      </p>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <!-- Primary sidebar slot -->
+      <div class="sidebar-section">
+        <div class="sidebar-title">Sponsored</div>
+        <div class="ox-ad-slot" data-slot-id="3"></div>
+      </div>
+
+      <!-- Related articles -->
+      <div class="sidebar-section">
+        <div class="sidebar-title">Related Articles</div>
+        <div class="related-item">
+          <div class="related-img" style="background:#dbeafe"></div>
+          <div>
+            <div class="related-title">How Smart Contracts Are Replacing Ad Networks</div>
+            <div class="related-date">Mar 15, 2026</div>
+          </div>
+        </div>
+        <div class="related-item">
+          <div class="related-img" style="background:#dcfce7"></div>
+          <div>
+            <div class="related-title">DeFi Protocol Revenue: A Deep Dive</div>
+            <div class="related-date">Mar 12, 2026</div>
+          </div>
+        </div>
+        <div class="related-item">
+          <div class="related-img" style="background:#fef3c7"></div>
+          <div>
+            <div class="related-title">Gas Fees: Are They Finally Getting Manageable?</div>
+            <div class="related-date">Mar 10, 2026</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <footer>
+    CryptoDaily Demo · Ads powered by <a href="dashboard.html">0xAds</a> · Running on Ganache · Chain ID 1337
+  </footer>
+
+  <!-- 0xAds widget script -->
+  <script src="ox-ads.js"></script>
+
+</body>
+</html>

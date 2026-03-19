@@ -1,0 +1,17 @@
+{
+  "name": "blockchain",
+  "version": "1.0.0",
+  "description": "1. docker compose up -d to start Ganache   2. Open Remix, paste SovereignTrash.sol, compile with Solidity 0.8.19+   3. In MetaMask: add network localhost:8545, Chain ID 1337, import accounts   from Ganache keys   4. In Remix: select \"Injected Provider - MetaMask\" → Deploy   5. Copy the deployed contract address and paste it into frontend/index.html   line where CONTRACT_ADDRESS is defined (the ABI is already embedded)   6. Open index.html in browser (or npx live-server frontend/)   7. Connect MetaMask and start dethroning!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "solc": "0.8.19",
+    "web3": "^4.16.0"
+  }
+}

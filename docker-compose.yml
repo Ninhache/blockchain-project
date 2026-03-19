@@ -1,0 +1,23 @@
+services:
+  ganache:
+    image: trufflesuite/ganache
+    container_name: ganache
+    ports:
+      - "8545:8545"
+    command:
+      - "--verbose"
+      - "--accounts=10"
+      - "--defaultBalanceEther=100"
+      - "--deterministic"
+      - "--chain.chainId=1337"
+      - "--miner.blockGasLimit=0x1fffffffffffff"
+
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - ganache

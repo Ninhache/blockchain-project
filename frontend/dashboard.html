@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>0xAds — Decentralized Ad Network</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+    :root {
+      --bg: #070b14; --surface: #0e1525; --surface2: #151e33;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --accent: #4f8ef7; --accent2: #a78bfa; --green: #22d3a5; --red: #f75555;
+      --text: #e2e8f0; --muted: #64748b;
+      --font: 'Space Grotesk', sans-serif; --mono: 'Space Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Topbar ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 2rem; border-bottom: 1px solid var(--border);
+      background: rgba(7,11,20,0.95); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .logo { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-ox { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .logo-sub { font-size: 0.7rem; color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
+    .topbar-right { display: flex; align-items: center; gap: 1rem; }
+    .wallet-chip {
+      display: flex; align-items: center; gap: 0.5rem; background: var(--surface);
+      border: 1px solid var(--border2); padding: 0.4rem 0.9rem; border-radius: 20px;
+    }
+    .wallet-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; }
+    .wallet-addr { font-family: var(--mono); font-size: 0.72rem; color: var(--text); }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: var(--font); font-weight: 600; border: none;
+      padding: 0.65rem 1.3rem; cursor: pointer; font-size: 0.85rem;
+      border-radius: 6px; transition: all 0.15s;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #6fa3ff; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border2); }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn-green { background: var(--green); color: #000; font-weight: 700; }
+    .btn-green:hover:not(:disabled) { background: #34e8bd; }
+    .btn-connect {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; padding: 0.6rem 1.4rem; border-radius: 20px;
+    }
+    .btn-connect:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-sm { padding: 0.38rem 0.8rem; font-size: 0.78rem; }
+    .btn-xs { padding: 0.25rem 0.6rem; font-size: 0.7rem; border-radius: 4px; }
+
+    /* ── Page tabs ── */
+    .page-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--bg); padding: 0 2rem;
+    }
+    .page-tab {
+      background: transparent; border: none; color: var(--muted); font-family: var(--font);
+      font-size: 0.88rem; font-weight: 500; padding: 1rem 1.5rem; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s;
+    }
+    .page-tab:hover { color: var(--text); }
+    .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+    /* ── Layout ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ── Stats ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat { background: var(--surface); border: 1px solid var(--border); padding: 1.1rem 1.4rem; border-radius: 8px; }
+    .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; font-family: var(--mono); }
+    .stat-value.blue { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.purple { color: var(--accent2); }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .card-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 0.9rem; font-weight: 600; }
+    .card-body { padding: 1.5rem; }
+
+    /* ── Slots grid ── */
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.2rem; }
+    .slot-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
+    .slot-card:hover { border-color: rgba(79,142,247,0.35); transform: translateY(-2px); }
+    .slot-img { width: 100%; height: 170px; object-fit: cover; display: block; cursor: pointer; }
+    .slot-img-empty {
+      width: 100%; height: 170px; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 0.5rem; background: var(--surface2); color: var(--muted); font-size: 0.82rem;
+    }
+    .slot-empty-icon { font-size: 2.5rem; opacity: 0.2; }
+    .slot-body { padding: 1rem 1.1rem; }
+    .slot-site-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .slot-site-url { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.7rem; }
+    .slot-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+    .slot-price { font-family: var(--mono); font-size: 0.82rem; color: var(--text); }
+    .slot-price .price-val { color: var(--accent); font-weight: 700; }
+    .slot-advertiser { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+    .slot-occupant {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border-radius: 5px; padding: 0.45rem 0.7rem;
+      margin-bottom: 0.7rem; font-family: var(--mono); font-size: 0.72rem;
+    }
+    .slot-occupant-addr { color: var(--accent2); }
+    .slot-occupant-empty { color: var(--muted); font-style: italic; }
+    .slot-actions { display: flex; gap: 0.5rem; }
+
+    /* ── Publisher panel ── */
+    .publisher-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; }
+    @media (max-width: 800px) { .publisher-grid { grid-template-columns: 1fr; } }
+
+    .register-form .field { margin-bottom: 1rem; }
+    .register-form .field label { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 0.4rem; }
+    .register-form input {
+      width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--border2);
+      border-radius: 6px; color: var(--text); font-family: var(--font); font-size: 0.9rem;
+    }
+    .register-form input:focus { outline: none; border-color: var(--accent); }
+    .register-form input::placeholder { color: var(--muted); }
+
+    /* Embed code box */
+    .embed-box {
+      background: #020509; border: 1px solid rgba(79,142,247,0.2); border-radius: 8px;
+      padding: 1.2rem; margin-top: 1rem;
+    }
+    .embed-box-title { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 1rem; font-weight: 600; }
+    .embed-snippet { margin-bottom: 1rem; }
+    .embed-snippet:last-child { margin-bottom: 0; }
+    .embed-snippet-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+    .embed-code {
+      font-family: var(--mono); font-size: 0.75rem; color: #7dd3fc; white-space: pre-wrap;
+      word-break: break-all; line-height: 1.6; background: #0a0f1e;
+      padding: 0.7rem 0.9rem; border-radius: 5px; border: 1px solid rgba(255,255,255,0.05);
+    }
+    .embed-copy { margin-top: 0.5rem; }
+    .btn-copied { color: var(--green) !important; border-color: var(--green) !important; }
+
+    /* My sites list */
+    .my-site-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 0; border-bottom: 1px solid var(--border); gap: 1rem;
+    }
+    .my-site-item:last-child { border-bottom: none; }
+    .my-site-info { flex: 1; }
+    .my-site-name { font-size: 0.9rem; font-weight: 600; }
+    .my-site-url { font-size: 0.72rem; color: var(--muted); }
+    .my-site-id { font-family: var(--mono); font-size: 0.7rem; color: var(--accent2); }
+    .my-site-earnings { font-family: var(--mono); font-size: 0.82rem; color: var(--green); white-space: nowrap; }
+
+    /* Earnings banner */
+    .earnings-banner {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      background: linear-gradient(135deg, rgba(34,211,165,0.08), rgba(34,211,165,0.04));
+      border: 1px solid rgba(34,211,165,0.2); border-radius: 10px;
+      padding: 1.3rem 1.5rem; margin-bottom: 1.5rem;
+    }
+    .earnings-amount { font-size: 1.8rem; font-weight: 700; font-family: var(--mono); color: var(--green); }
+    .earnings-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.3rem; }
+
+    /* Modal */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 1.8rem; width: 100%; max-width: 460px; }
+    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 1.4rem; }
+    .modal-title .highlight { color: var(--accent); }
+    .modal-field { margin-bottom: 1rem; }
+    .modal-field label { display: block; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+    .modal-field input { width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--font); font-size: 0.88rem; }
+    .modal-field input:focus { outline: none; border-color: var(--accent); }
+    .modal-field input::placeholder { color: var(--muted); }
+    .modal-field .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; }
+    .modal-actions { display: flex; gap: 0.8rem; margin-top: 1.4rem; }
+    .modal-actions .btn { flex: 1; }
+    .img-preview { width: 100%; height: 110px; object-fit: cover; border-radius: 5px; background: var(--surface2); border: 1px solid var(--border); margin-top: 0.5rem; display: none; }
+    .img-preview.show { display: block; }
+
+    /* Status */
+    .status { padding: 0.65rem 0.9rem; border-radius: 6px; font-size: 0.8rem; margin-top: 0.8rem; display: none; }
+    .status.show { display: block; }
+    .status.error { background: rgba(247,85,85,0.1); border: 1px solid rgba(247,85,85,0.3); color: var(--red); }
+    .status.success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); color: var(--green); }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .badge-green { background: rgba(34,211,165,0.15); color: var(--green); }
+    .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+
+    /* Section header */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+    .section-head h2 { font-size: 1rem; font-weight: 600; }
+
+    .empty-state { text-align: center; padding: 3.5rem 2rem; color: var(--muted); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3; display: block; }
+    .empty-state p { font-size: 0.88rem; }
+
+    .tag { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); background: var(--surface2); padding: 0.2rem 0.5rem; border-radius: 4px; }
+    .hidden { display: none; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+    /* History */
+    .history-row { display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; }
+    .history-row:last-child { border-bottom: none; }
+    .history-row img { width: 44px; height: 32px; object-fit: cover; border-radius: 3px; background: var(--surface2); flex-shrink: 0; }
+    .history-addr { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+    .history-price { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); margin-left: auto; white-space: nowrap; }
+
+    /* Glow on hover for place ad btn */
+    .btn-place { background: var(--accent); color: #fff; }
+    .btn-place:hover { background: #6fa3ff; box-shadow: 0 0 16px rgba(79,142,247,0.4); }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px;flex-shrink:0">
+        <circle cx="12" cy="12" r="3" fill="url(#lg)"/>
+        <path d="M8.5 8.5a4.8 4.8 0 0 0 0 7M15.5 8.5a4.8 4.8 0 0 1 0 7" stroke="url(#lg)" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M5 5a9.9 9.9 0 0 0 0 14M19 5a9.9 9.9 0 0 1 0 14" stroke="url(#lg)" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#4f8ef7"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+      </svg>
+      <span class="logo-ox">0xAds</span>
+      <span class="logo-sub">Decentralized Ad Network</span>
+    </div>
+    <div class="topbar-right">
+      <div class="wallet-chip hidden" id="walletChip">
+        <div class="wallet-dot"></div>
+        <span class="wallet-addr" id="walletAddr"></span>
+      </div>
+      <button class="btn btn-connect" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </div>
+
+  <!-- Page tabs -->
+  <div class="page-tabs hidden" id="pageTabs">
+    <button class="page-tab active" onclick="switchSection('advertise')">📢 Advertise</button>
+    <button class="page-tab" onclick="switchSection('publish')">🏗️ My Sites</button>
+  </div>
+
+  <!-- ── Connect gate ───────────────────────────────────────── -->
+  <div id="connectGate" style="max-width:400px;margin:6rem auto;text-align:center;padding:2rem">
+    <div style="font-size:3rem;margin-bottom:1rem;opacity:0.25">🔗</div>
+    <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:0.5rem">Connect your wallet</h2>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem">Connect MetaMask to view and manage your ad sites and slots.</p>
+    <button class="btn btn-connect" style="width:100%;max-width:220px" onclick="connectWallet()">Connect Wallet</button>
+  </div>
+
+  <!-- ── ADVERTISE section ─────────────────────────────────── -->
+  <div class="page page-section hidden" id="section-advertise">
+
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Active Slots</div><div class="stat-value blue" id="statSlots">—</div></div>
+      <div class="stat"><div class="stat-label">Lowest Bid</div><div class="stat-value" id="statLowest">— ETH</div></div>
+      <div class="stat"><div class="stat-label">Your Ads Live</div><div class="stat-value purple" id="statMyAds">—</div></div>
+      <div class="stat"><div class="stat-label">Network</div><div class="stat-value" style="font-size:0.9rem;color:var(--muted)">Ganache · 1337</div></div>
+    </div>
+
+    <div class="section-head">
+      <h2>Available Ad Slots</h2>
+      <button class="btn btn-ghost btn-sm" onclick="refreshAll()">↻ Refresh</button>
+    </div>
+
+    <div id="slotsContainer">
+      <div class="empty-state"><span class="icon">⏳</span><p>Loading slots…</p></div>
+    </div>
+  </div>
+
+  <!-- ── MY SITES section ──────────────────────────────────── -->
+  <div class="page page-section hidden" id="section-publish">
+
+    <!-- Earnings -->
+    <div class="earnings-banner hidden" id="earningsBanner">
+      <div>
+        <div class="earnings-label">Pending Earnings</div>
+        <div class="earnings-amount" id="earningsAmt">0 ETH</div>
+        <div style="font-size:0.73rem;color:var(--muted);margin-top:0.2rem">Claimable now · 80% of all bids on your slots</div>
+      </div>
+      <div>
+        <button class="btn btn-green" onclick="doWithdraw()">Claim Earnings</button>
+        <div class="status" id="withdrawStatus"></div>
+      </div>
+    </div>
+
+    <div class="publisher-grid">
+
+      <!-- Left: Register form -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Register a New Site</span></div>
+          <div class="card-body register-form">
+            <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem">
+              Register your site, then add slots to it. Each slot gets its own embeddable iFrame — earn 80% of every bid placed on your slots.
+            </p>
+            <div class="field">
+              <label>Site Name</label>
+              <input type="text" id="siteName" placeholder="CryptoDaily, My Blog...">
+            </div>
+            <div class="field">
+              <label>Site URL</label>
+              <input type="text" id="siteUrl" placeholder="https://mysite.com">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="registerSite()">Register Site</button>
+            <div class="status" id="registerStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: My sites list -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Your Sites</span>
+            <button class="btn btn-ghost btn-xs" onclick="refreshMySites()">↻</button>
+          </div>
+          <div class="card-body" id="mySitesList">
+            <div class="empty-state" style="padding:2rem">
+              <span class="icon">🏗️</span>
+              <p>Connect your wallet to see your sites</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Place Ad Modal ────────────────────────────────────── -->
+  <div class="modal-bg hidden" id="adModal">
+    <div class="modal">
+      <div class="modal-title">Place Ad · <span class="highlight" id="modalSiteName">Site</span></div>
+      <div class="modal-field">
+        <label>Image URL</label>
+        <input type="text" id="adImg" placeholder="https://..." oninput="previewAdImg()">
+        <img class="img-preview" id="adImgPreview" alt="preview">
+      </div>
+      <div class="modal-field">
+        <label>Destination URL</label>
+        <input type="text" id="adLink" placeholder="https://yoursite.com">
+      </div>
+      <div class="modal-field">
+        <label>Bid</label>
+        <div style="font-size:1.3rem;font-weight:700;font-family:var(--mono);color:var(--accent)" id="modalBid">0 ETH</div>
+        <div class="hint">Outbids the current advertiser. Next bid will be 10% higher.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAdModal()">Cancel</button>
+        <button class="btn btn-place" id="placeBtn" onclick="placeAd()">Place Ad</button>
+      </div>
+      <div class="status" id="placeStatus"></div>
+    </div>
+  </div>
+
+  <!-- ── History Modal ─────────────────────────────────────── -->
+  <div class="modal-bg hidden" id="historyModal">
+    <div class="modal">
+      <div class="modal-title">Ad History · <span class="highlight" id="histModalName"></span></div>
+      <div id="historyContent"></div>
+      <div style="margin-top:1.2rem"><button class="btn btn-ghost" onclick="closeHistoryModal()">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ── Add Slot Modal ─────────────────────────────────────── -->
+  <div class="modal-bg hidden" id="addSlotModal">
+    <div class="modal">
+      <div class="modal-title">Add Slot · <span class="highlight" id="addSlotSiteName"></span></div>
+      <div class="modal-field">
+        <label>Slot Name</label>
+        <input type="text" id="slotName" placeholder="Header, Sidebar, Footer...">
+      </div>
+      <div class="modal-field">
+        <label>Width (px)</label>
+        <input type="number" id="slotWidth" placeholder="320">
+      </div>
+      <div class="modal-field">
+        <label>Height (px)</label>
+        <input type="number" id="slotHeight" placeholder="210">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddSlotModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="doAddSlot()">Add Slot</button>
+      </div>
+      <div class="status" id="addSlotStatus"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── CONTRACT ───────────────────────────────────────────────────────────
+    const CONTRACT_ADDRESS = '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab'
+    const ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"slotId","type":"uint256"},{"indexed":true,"internalType":"uint256","name":"siteId","type":"uint256"},{"indexed":true,"internalType":"address","name":"advertiser","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"string","name":"imageUrl","type":"string"},{"indexed":false,"internalType":"string","name":"linkUrl","type":"string"}],"name":"AdPlaced","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"siteId","type":"uint256"},{"indexed":true,"internalType":"address","name":"publisher","type":"address"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"string","name":"url","type":"string"}],"name":"SiteRegistered","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"slotId","type":"uint256"},{"indexed":true,"internalType":"uint256","name":"siteId","type":"uint256"},{"indexed":true,"internalType":"address","name":"publisher","type":"address"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"uint256","name":"width","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"height","type":"uint256"}],"name":"SlotCreated","type":"event"},
+      {"inputs":[],"name":"BASE_PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"PRICE_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"PUBLISHER_SHARE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"siteId","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"width","type":"uint256"},{"internalType":"uint256","name":"height","type":"uint256"}],"name":"addSlot","outputs":[{"internalType":"uint256","name":"slotId","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"slotId","type":"uint256"}],"name":"getCurrentAd","outputs":[{"internalType":"address","name":"advertiser","type":"address"},{"internalType":"string","name":"imageUrl","type":"string"},{"internalType":"string","name":"linkUrl","type":"string"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"slotId","type":"uint256"}],"name":"getHistory","outputs":[{"components":[{"internalType":"address","name":"advertiser","type":"address"},{"internalType":"string","name":"imageUrl","type":"string"},{"internalType":"string","name":"linkUrl","type":"string"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"internalType":"struct OxAds.Ad[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"publisher","type":"address"}],"name":"getPublisherSites","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getSiteCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getSiteIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"siteId","type":"uint256"}],"name":"getSiteMeta","outputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"url","type":"string"},{"internalType":"address","name":"publisher","type":"address"},{"internalType":"uint256","name":"slotCount","type":"uint256"},{"internalType":"bool","name":"exists","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"siteId","type":"uint256"}],"name":"getSiteSlotIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getSlotCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getSlotIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"slotId","type":"uint256"}],"name":"getSlotMeta","outputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"siteId","type":"uint256"},{"internalType":"uint256","name":"width","type":"uint256"},{"internalType":"uint256","name":"height","type":"uint256"},{"internalType":"uint256","name":"currentPrice","type":"uint256"},{"internalType":"bool","name":"exists","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"pendingWithdrawals","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"slotId","type":"uint256"},{"internalType":"string","name":"imageUrl","type":"string"},{"internalType":"string","name":"linkUrl","type":"string"}],"name":"placeAd","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"protocolOwner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"url","type":"string"}],"name":"registerSite","outputs":[{"internalType":"uint256","name":"siteId","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"siteIds","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"slotIds","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
+    ];
+
+    let roWeb3, roContract;
+    let web3, contract, account;
+    let activeModal   = null; // { slotId, priceWei }
+    let addSlotTarget = null; // siteId
+
+    const w3 = () => web3 || roWeb3;
+    const rc = () => contract || roContract;
+
+    // ── Init on page load ─────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      roWeb3     = new Web3('http://127.0.0.1:8545');
+      roContract = new roWeb3.eth.Contract(ABI, CONTRACT_ADDRESS);
+    });
+
+    // ── Connect ────────────────────────────────────────────────────────────
+    async function connectWallet() {
+      if (!window.ethereum) { alert('MetaMask not found!'); return; }
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      account = accounts[0];
+      web3 = new Web3(window.ethereum);
+      contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+      document.getElementById('connectBtn').classList.add('hidden');
+      document.getElementById('walletChip').classList.remove('hidden');
+      document.getElementById('walletAddr').textContent = truncAddr(account);
+
+      document.getElementById('connectGate').classList.add('hidden');
+      document.getElementById('pageTabs').classList.remove('hidden');
+      switchSection('advertise');
+
+      window.ethereum.on('accountsChanged', a => {
+        account = a[0];
+        document.getElementById('walletAddr').textContent = truncAddr(account);
+        loadSlots();
+      });
+
+      contract.events.AdPlaced({}).on('data', () => loadSlots());
+      contract.events.SiteRegistered({}).on('data', () => { loadSlots(); refreshMySites(); });
+      contract.events.SlotCreated({}).on('data',  () => { loadSlots(); refreshMySites(); });
+
+      loadSlots();
+      refreshMySites();
+    }
+
+    // ── Section switch ─────────────────────────────────────────────────────
+    function switchSection(name) {
+      document.querySelectorAll('.page-tab').forEach((b, i) => {
+        b.classList.toggle('active', ['advertise','publish'][i] === name);
+      });
+      document.querySelectorAll('.page-section').forEach(s => {
+        s.classList.remove('active');
+        s.classList.add('hidden');
+      });
+      const target = document.getElementById('section-' + name);
+      target.classList.remove('hidden');
+      target.classList.add('active');
+    }
+
+    // ── Load slots (works with or without wallet) ──────────────────────────
+    async function loadSlots() {
+      try {
+        const ids = await rc().methods.getSlotIds().call();
+        document.getElementById('statSlots').textContent = ids.length;
+
+        const slots = await Promise.all(ids.map(async id => {
+          const [meta, ad] = await Promise.all([
+            rc().methods.getSlotMeta(id).call(),
+            rc().methods.getCurrentAd(id).call()
+          ]);
+          return { id, ...meta, ad };
+        }));
+
+        // Batch-fetch unique site metas for site name/url display
+        const uniqueSiteIds = [...new Set(slots.map(s => s.siteId.toString()))];
+        const siteMetas = {};
+        await Promise.all(uniqueSiteIds.map(async sid => {
+          siteMetas[sid] = await rc().methods.getSiteMeta(sid).call();
+        }));
+        const enriched = slots.map(s => ({ ...s, site: siteMetas[s.siteId.toString()] }));
+
+        const prices = enriched.map(s => parseFloat(w3().utils.fromWei(s.currentPrice, 'ether')));
+        document.getElementById('statLowest').textContent = prices.length
+          ? Math.min(...prices).toFixed(4) + ' ETH' : '— ETH';
+
+        if (account) {
+          const myAds = enriched.filter(s => s.ad.advertiser?.toLowerCase() === account.toLowerCase()).length;
+          document.getElementById('statMyAds').textContent = myAds;
+
+          const pending = await contract.methods.pendingWithdrawals(account).call();
+          const pendingEth = parseFloat(web3.utils.fromWei(pending, 'ether'));
+          const banner = document.getElementById('earningsBanner');
+          if (pendingEth > 0.000001) {
+            banner.classList.remove('hidden');
+            document.getElementById('earningsAmt').textContent = pendingEth.toFixed(6) + ' ETH';
+          } else { banner.classList.add('hidden'); }
+        }
+
+        renderSlots(enriched);
+      } catch(e) { console.error(e); }
+    }
+
+    const refreshAll = loadSlots;
+
+    function renderSlots(slots) {
+      const el = document.getElementById('slotsContainer');
+      if (!slots.length) {
+        el.innerHTML = `<div class="empty-state"><span class="icon">📡</span><p>No slots yet. Register a site and add a slot!</p></div>`;
+        return;
+      }
+      el.innerHTML = `<div class="slots-grid">${slots.map(slotCardHTML).join('')}</div>`;
+    }
+
+    function slotCardHTML(s) {
+      const priceEth  = parseFloat(w3().utils.fromWei(s.currentPrice, 'ether')).toFixed(4);
+      const hasAd     = s.ad.advertiser && s.ad.advertiser !== '0x0000000000000000000000000000000000000000';
+      const isMyAd    = account && hasAd && s.ad.advertiser.toLowerCase() === account.toLowerCase();
+      const isMySlot  = account && s.site?.publisher?.toLowerCase() === account.toLowerCase();
+      const siteName  = s.site ? eh(s.site.name) : `Site #${s.siteId}`;
+      const dimsLabel = `${s.width}×${s.height}`;
+
+      const imgBlock = hasAd && s.ad.imageUrl
+        ? `<a href="${ea(s.ad.linkUrl)}" target="_blank" rel="noopener">
+             <img class="slot-img" src="${ea(s.ad.imageUrl)}" onerror="this.style.display='none'" alt="ad">
+           </a>`
+        : `<div class="slot-img-empty"><div class="slot-empty-icon">📺</div><span>Empty — be first!</span></div>`;
+
+      const badges = [
+        isMySlot ? '<span class="badge badge-green">Your Site</span>' : '',
+        isMyAd   ? '<span class="badge badge-purple">Your Ad</span>'  : ''
+      ].filter(Boolean).join(' ');
+
+      const occupant = hasAd
+        ? `<div class="slot-occupant">
+             <span style="color:var(--muted);font-size:0.65rem">Occupied by</span>
+             <span class="slot-occupant-addr">${s.ad.advertiser}</span>
+           </div>`
+        : `<div class="slot-occupant">
+             <span class="slot-occupant-empty">No advertiser yet</span>
+             <span style="color:var(--muted);font-size:0.65rem">Be first</span>
+           </div>`;
+
+      const placeBtn = account
+        ? `<button class="btn btn-place btn-sm" onclick="openAdModal(${s.id},'${eh(s.name)} @ ${siteName}','${s.currentPrice}')">Place Ad</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="connectWallet()">Connect to bid</button>`;
+
+      return `<div class="slot-card">
+        ${imgBlock}
+        <div class="slot-body">
+          <div class="slot-site-name">${siteName} <small style="color:var(--muted)">#${s.id}</small> ${badges}</div>
+          <div class="slot-site-url" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.7rem">
+            <span>${eh(s.name)}</span>
+            <span class="badge badge-blue">${dimsLabel}</span>
+            ${s.site?.url ? `<a href="${ea(s.site.url)}" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:0.7rem">${eh(s.site.url)}</a>` : ''}
+          </div>
+          ${occupant}
+          <div class="slot-meta">
+            <div class="slot-price">Next bid: <span class="price-val">${priceEth} ETH</span></div>
+            <span class="tag">+10%</span>
+          </div>
+          <div class="slot-actions" style="margin-top:0.8rem">
+            ${placeBtn}
+            <button class="btn btn-ghost btn-sm" onclick="openHistory(${s.id},'${eh(s.name)}')">History</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // ── Register site ──────────────────────────────────────────────────────
+    async function registerSite() {
+      const name = document.getElementById('siteName').value.trim();
+      const url  = document.getElementById('siteUrl').value.trim();
+      if (!name || !url) { showStatus('registerStatus', 'Fill in both fields', 'error'); return; }
+
+      try {
+        showStatus('registerStatus', 'Waiting for MetaMask...', 'success');
+        const result = await contract.methods.registerSite(name, url).send({ from: account, gas: 300000 });
+        const siteId = result.events?.SiteRegistered?.returnValues?.siteId || '?';
+        showStatus('registerStatus', `Site #${siteId} registered! Add slots from the panel on the right.`, 'success');
+        document.getElementById('siteName').value = '';
+        document.getElementById('siteUrl').value  = '';
+        loadSlots();
+        refreshMySites();
+      } catch(e) { showStatus('registerStatus', e.message || 'Failed', 'error'); }
+    }
+
+    function copyEmbed(codeId, btn) {
+      navigator.clipboard.writeText(document.getElementById(codeId).textContent).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('btn-copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('btn-copied'); }, 2000);
+      });
+    }
+
+    function copyEmbedDirect(slotId, width, height, btn) {
+      const text = `<iframe src="http://localhost:8080/slot.html?id=${slotId}" width="${width}" height="${height + 40}" frameborder="0" scrolling="no" style="border:none;display:block"></iframe>`;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('btn-copied');
+        setTimeout(() => { btn.textContent = 'Copy iframe'; btn.classList.remove('btn-copied'); }, 2000);
+      });
+    }
+
+    // ── My sites (hierarchical) ────────────────────────────────────────────
+    async function refreshMySites() {
+      if (!contract || !account) return;
+      const el = document.getElementById('mySitesList');
+      try {
+        const ids = await contract.methods.getPublisherSites(account).call();
+        if (!ids.length) {
+          el.innerHTML = '<div class="empty-state" style="padding:2rem"><span class="icon">🏗️</span><p>No sites yet. Register one!</p></div>';
+          return;
+        }
+        const sites = await Promise.all(ids.map(async id => {
+          const [meta, slotIdList] = await Promise.all([
+            contract.methods.getSiteMeta(id).call(),
+            contract.methods.getSiteSlotIds(id).call()
+          ]);
+          const slots = await Promise.all(
+            slotIdList.map(sid => contract.methods.getSlotMeta(sid).call().then(m => ({ id: sid, ...m })))
+          );
+          return { id, ...meta, slots };
+        }));
+
+        el.innerHTML = sites.map(s => {
+          const slotsHtml = s.slots.length
+            ? s.slots.map(slot => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0 0.5rem 1rem;border-bottom:1px solid var(--border)">
+                <div>
+                  <span style="font-size:0.82rem;font-weight:500">${eh(slot.name)}</span>
+                  <span class="badge badge-blue" style="margin-left:0.4rem">${slot.width}×${slot.height}</span>
+                  <span class="my-site-id" style="margin-left:0.4rem">Slot #${slot.id}</span>
+                </div>
+                <button class="btn btn-ghost btn-xs" onclick="copyEmbedDirect(${slot.id},${slot.width},${slot.height},this)">Copy iframe</button>
+              </div>`).join('')
+            : `<div style="padding:0.5rem 0 0.5rem 1rem;font-size:0.8rem;color:var(--muted)">No slots yet</div>`;
+
+          return `<div class="my-site-item" style="flex-direction:column;align-items:stretch">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0">
+              <div class="my-site-info">
+                <div class="my-site-name">${eh(s.name)}</div>
+                <div class="my-site-url">${eh(s.url)}</div>
+                <div class="my-site-id">Site #${s.id} · ${s.slotCount} slot${s.slotCount != 1 ? 's' : ''}</div>
+              </div>
+              <button class="btn btn-ghost btn-xs" onclick="openAddSlotModal(${s.id},'${eh(s.name)}')">+ Add Slot</button>
+            </div>
+            ${slotsHtml}
+          </div>`;
+        }).join('');
+      } catch(e) { console.error('[MySites]', e); el.innerHTML = `<p style="color:var(--red);font-size:0.85rem">Failed to load: ${e.message}</p>`; }
+    }
+
+    // ── Add Slot ───────────────────────────────────────────────────────────
+    function openAddSlotModal(siteId, siteName) {
+      addSlotTarget = siteId;
+      document.getElementById('addSlotSiteName').textContent = siteName;
+      document.getElementById('slotName').value   = '';
+      document.getElementById('slotWidth').value  = '';
+      document.getElementById('slotHeight').value = '';
+      document.getElementById('addSlotStatus').className = 'status';
+      document.getElementById('addSlotModal').classList.remove('hidden');
+    }
+    function closeAddSlotModal() { document.getElementById('addSlotModal').classList.add('hidden'); }
+
+    async function doAddSlot() {
+      const name   = document.getElementById('slotName').value.trim();
+      const width  = parseInt(document.getElementById('slotWidth').value)  || 0;
+      const height = parseInt(document.getElementById('slotHeight').value) || 0;
+      if (!name || width <= 0 || height <= 0) { showStatus('addSlotStatus', 'Fill in all fields with valid values', 'error'); return; }
+      try {
+        showStatus('addSlotStatus', 'Waiting for MetaMask...', 'success');
+        const result = await contract.methods.addSlot(addSlotTarget, name, width, height).send({ from: account, gas: 300000 });
+        const slotId = result.events?.SlotCreated?.returnValues?.slotId || '?';
+        showStatus('addSlotStatus', `Slot #${slotId} created!`, 'success');
+        setTimeout(closeAddSlotModal, 1200);
+        loadSlots();
+        refreshMySites();
+      } catch(e) { showStatus('addSlotStatus', e.message || 'Failed', 'error'); }
+    }
+
+    // ── Place Ad ───────────────────────────────────────────────────────────
+    function openAdModal(slotId, label, priceWei) {
+      activeModal = { slotId, priceWei };
+      document.getElementById('modalSiteName').textContent = label;
+      document.getElementById('modalBid').textContent = parseFloat(web3.utils.fromWei(priceWei, 'ether')).toFixed(4) + ' ETH';
+      document.getElementById('adImg').value  = '';
+      document.getElementById('adLink').value = '';
+      document.getElementById('adImgPreview').classList.remove('show');
+      document.getElementById('placeStatus').className = 'status';
+      document.getElementById('adModal').classList.remove('hidden');
+    }
+    function closeAdModal() { document.getElementById('adModal').classList.add('hidden'); }
+    function previewAdImg() {
+      const url = document.getElementById('adImg').value.trim();
+      const img = document.getElementById('adImgPreview');
+      if (url) { img.src = url; img.classList.add('show'); } else { img.classList.remove('show'); }
+    }
+
+    async function placeAd() {
+      if (!activeModal) return;
+      const imgUrl  = document.getElementById('adImg').value.trim();
+      const linkUrl = document.getElementById('adLink').value.trim();
+      if (!imgUrl || !linkUrl) { showStatus('placeStatus', 'Fill in both fields', 'error'); return; }
+      try {
+        const fresh = await contract.methods.getSlotMeta(activeModal.slotId).call();
+        const value = fresh.currentPrice.toString();
+        showStatus('placeStatus', 'Waiting for MetaMask...', 'success');
+        document.getElementById('placeBtn').disabled = true;
+        await contract.methods.placeAd(activeModal.slotId, imgUrl, linkUrl).send({ from: account, value, gas: 800000 });
+        showStatus('placeStatus', '🎉 Ad placed!', 'success');
+        setTimeout(closeAdModal, 1500);
+        loadSlots();
+      } catch(e) {
+        showStatus('placeStatus', e.message?.slice(0,120) || 'Transaction failed', 'error');
+      } finally { document.getElementById('placeBtn').disabled = false; }
+    }
+
+    // ── History ────────────────────────────────────────────────────────────
+    async function openHistory(slotId, slotName) {
+      document.getElementById('histModalName').textContent = slotName;
+      document.getElementById('historyContent').innerHTML = '<p style="color:var(--muted);font-size:0.85rem">Loading...</p>';
+      document.getElementById('historyModal').classList.remove('hidden');
+      try {
+        const [currentAd, history] = await Promise.all([
+          rc().methods.getCurrentAd(slotId).call(),
+          rc().methods.getHistory(slotId).call()
+        ]);
+        const hasCurrentAd = currentAd.advertiser !== '0x0000000000000000000000000000000000000000';
+        const allAds = [
+          ...(hasCurrentAd ? [{ ...currentAd, _current: true }] : []),
+          ...[...history].reverse()
+        ];
+        if (!allAds.length) {
+          document.getElementById('historyContent').innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No ads yet.</p>';
+          return;
+        }
+        document.getElementById('historyContent').innerHTML = allAds.map((ad, i) => `
+          <div class="history-row">
+            <img src="${ea(ad.imageUrl)}" onerror="this.style.opacity='.3'" alt="">
+            <div style="flex:1;min-width:0">
+              <div class="history-addr">${truncAddr(ad.advertiser)}</div>
+              <div style="font-size:0.68rem;color:var(--muted)">${Number(ad.timestamp) ? new Date(Number(ad.timestamp)*1000).toLocaleString() : '—'}</div>
+            </div>
+            <div style="text-align:right">
+              ${ad._current ? '<div style="font-size:0.6rem;color:var(--green);margin-bottom:2px">CURRENT</div>' : ''}
+              <div class="history-price">${parseFloat(w3().utils.fromWei(ad.price,'ether')).toFixed(4)} ETH</div>
+            </div>
+          </div>`).join('');
+      } catch(e) { document.getElementById('historyContent').innerHTML = `<p style="color:var(--red)">${e.message}</p>`; }
+    }
+    function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
+
+    // ── Withdraw ───────────────────────────────────────────────────────────
+    async function doWithdraw() {
+      try {
+        showStatus('withdrawStatus', 'Waiting for MetaMask...', 'success');
+        await contract.methods.withdraw().send({ from: account });
+        showStatus('withdrawStatus', 'Claimed! 💰', 'success');
+        loadSlots();
+      } catch(e) { showStatus('withdrawStatus', e.message || 'Failed', 'error'); }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function truncAddr(a) { return a ? a.slice(0,6)+'…'+a.slice(-4) : '—'; }
+    function eh(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+    function ea(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function showStatus(id, msg, type) { const e = document.getElementById(id); e.textContent = msg; e.className = 'status show ' + type; }
+
+    ['adModal','historyModal','addSlotModal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) document.getElementById(id).classList.add('hidden'); });
+    });
+  </script>
+</body>
+</html>
